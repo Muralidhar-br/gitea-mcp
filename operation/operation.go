@@ -44,17 +44,24 @@ func Run() error {
 	RegisterTool(mcpServer)
 	switch flag.Mode {
 	case "stdio":
-		if err := server.ServeStdio(mcpServer); err != nil {
+		if err := server.ServeStdio(
+			mcpServer,
+		); err != nil {
 			return err
 		}
 	case "sse":
-		sseServer := server.NewSSEServer(mcpServer)
+		sseServer := server.NewSSEServer(
+			mcpServer,
+		)
 		log.Infof("Gitea MCP SSE server listening on :%d", flag.Port)
 		if err := sseServer.Start(fmt.Sprintf(":%d", flag.Port)); err != nil {
 			return err
 		}
 	case "http":
-		httpServer := server.NewStreamableHTTPServer(mcpServer)
+		httpServer := server.NewStreamableHTTPServer(
+			mcpServer,
+			server.WithLogger(log.New()),
+		)
 		log.Infof("Gitea MCP HTTP server listening on :%d", flag.Port)
 		if err := httpServer.Start(fmt.Sprintf(":%d", flag.Port)); err != nil {
 			return err

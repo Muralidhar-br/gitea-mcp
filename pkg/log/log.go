@@ -19,53 +19,55 @@ var (
 
 func Default() *zap.Logger {
 	defaultLoggerOnce.Do(func() {
-		if defaultLogger == nil {
-			ec := zap.NewProductionEncoderConfig()
-			ec.EncodeTime = zapcore.TimeEncoderOfLayout(time.DateTime)
-			ec.EncodeLevel = zapcore.CapitalLevelEncoder
-
-			var ws zapcore.WriteSyncer
-			var wss []zapcore.WriteSyncer
-
-			home, _ := os.UserHomeDir()
-			if home == "" {
-				home = os.TempDir()
-			}
-
-			logDir := fmt.Sprintf("%s/.gitea-mcp", home)
-			if err := os.MkdirAll(logDir, 0o700); err != nil {
-				// Fallback to temp directory if creation fails
-				logDir = os.TempDir()
-			}
-
-			wss = append(wss, zapcore.AddSync(&lumberjack.Logger{
-				Filename:   fmt.Sprintf("%s/gitea-mcp.log", logDir),
-				MaxSize:    100,
-				MaxBackups: 10,
-				MaxAge:     30,
-			}))
-
-			if flag.Mode == "http" || flag.Mode == "sse" {
-				wss = append(wss, zapcore.AddSync(os.Stdout))
-			}
-
-			ws = zapcore.NewMultiWriteSyncer(wss...)
-
-			enc := zapcore.NewConsoleEncoder(ec)
-			var level zapcore.Level
-			if flag.Debug {
-				level = zapcore.DebugLevel
-			} else {
-				level = zapcore.InfoLevel
-			}
-			core := zapcore.NewCore(enc, ws, level)
-			options := []zap.Option{
-				zap.AddStacktrace(zapcore.DPanicLevel),
-				zap.AddCaller(),
-				zap.AddCallerSkip(1),
-			}
-			defaultLogger = zap.New(core, options...)
+		if defaultLogger != nil {
+			return
 		}
+
+		ec := zap.NewProductionEncoderConfig()
+		ec.EncodeTime = zapcore.TimeEncoderOfLayout(time.DateTime)
+		ec.EncodeLevel = zapcore.CapitalLevelEncoder
+
+		var ws zapcore.WriteSyncer
+		var wss []zapcore.WriteSyncer
+
+		home, _ := os.UserHomeDir()
+		if home == "" {
+			home = os.TempDir()
+		}
+
+		logDir := fmt.Sprintf("%s/.gitea-mcp", home)
+		if err := os.MkdirAll(logDir, 0o700); err != nil {
+			// Fallback to temp directory if creation fails
+			logDir = os.TempDir()
+		}
+
+		wss = append(wss, zapcore.AddSync(&lumberjack.Logger{
+			Filename:   fmt.Sprintf("%s/gitea-mcp.log", logDir),
+			MaxSize:    100,
+			MaxBackups: 10,
+			MaxAge:     30,
+		}))
+
+		if flag.Mode == "http" || flag.Mode == "sse" {
+			wss = append(wss, zapcore.AddSync(os.Stdout))
+		}
+
+		ws = zapcore.NewMultiWriteSyncer(wss...)
+
+		enc := zapcore.NewConsoleEncoder(ec)
+		var level zapcore.Level
+		if flag.Debug {
+			level = zapcore.DebugLevel
+		} else {
+			level = zapcore.InfoLevel
+		}
+		core := zapcore.NewCore(enc, ws, level)
+		options := []zap.Option{
+			zap.AddStacktrace(zapcore.DPanicLevel),
+			zap.AddCaller(),
+			zap.AddCallerSkip(1),
+		}
+		defaultLogger = zap.New(core, options...)
 	})
 
 	return defaultLogger
@@ -77,8 +79,22 @@ func SetDefault(logger *zap.Logger) {
 	}
 }
 
-func Logger() *zap.Logger {
-	return defaultLogger
+func New() *Logger {
+	return &Logger{
+		defaultLogger: Default(),
+	}
+}
+
+type Logger struct {
+	defaultLogger *zap.Logger
+}
+
+func (l *Logger) Infof(msg string, args ...any) {
+	l.defaultLogger.Sugar().Infof(msg, args...)
+}
+
+func (l *Logger) Errorf(msg string, args ...any) {
+	l.defaultLogger.Sugar().Errorf(msg, args...)
 }
 
 func Debug(msg string, fields ...zap.Field) {
