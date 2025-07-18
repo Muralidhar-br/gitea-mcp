@@ -2,6 +2,7 @@ package operation
 
 import (
 	"fmt"
+	"time"
 
 	"gitea.com/gitea/gitea-mcp/operation/issue"
 	"gitea.com/gitea/gitea-mcp/operation/pull"
@@ -61,6 +62,7 @@ func Run() error {
 		httpServer := server.NewStreamableHTTPServer(
 			mcpServer,
 			server.WithLogger(log.New()),
+			server.WithHeartbeatInterval(30*time.Second),
 		)
 		log.Infof("Gitea MCP HTTP server listening on :%d", flag.Port)
 		if err := httpServer.Start(fmt.Sprintf(":%d", flag.Port)); err != nil {
