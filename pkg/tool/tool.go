@@ -12,8 +12,8 @@ type Tool struct {
 
 func New() *Tool {
 	return &Tool{
-		write: make([]server.ServerTool, 100),
-		read:  make([]server.ServerTool, 100),
+		write: make([]server.ServerTool, 0, 100),
+		read:  make([]server.ServerTool, 0, 100),
 	}
 }
 
