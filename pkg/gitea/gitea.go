@@ -2,6 +2,7 @@ package gitea
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -43,6 +44,9 @@ func Client() *gitea.Client {
 		if err != nil {
 			log.Fatalf("create gitea client err: %v", err)
 		}
+
+		// Set user agent for the client
+		client.SetUserAgent(fmt.Sprintf("gitea-mcp-server/%s", flag.Version))
 	})
 	return client
 }
