@@ -1,8 +1,11 @@
 package repo
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
@@ -30,6 +33,7 @@ var (
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithString("ref", mcp.Required(), mcp.Description("ref can be branch/tag/commit")),
 		mcp.WithString("filePath", mcp.Required(), mcp.Description("file path")),
+		mcp.WithBoolean("withLines", mcp.Description("whether to return file content with lines")),
 	)
 
 	GetDirContentTool = mcp.NewTool(
@@ -100,6 +104,11 @@ func init() {
 	})
 }
 
+type ContentLine struct {
+	LineNumber int    `json:"line"`
+	Content    string `json:"content"`
+}
+
 func GetFileContentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetFileFn")
 	owner, ok := req.GetArguments()["owner"].(string)
@@ -118,6 +127,34 @@ func GetFileContentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	content, _, err := gitea.Client().GetContents(owner, repo, ref, filePath)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get file err: %v", err))
+	}
+	withLines, _ := req.GetArguments()["withLines"].(bool)
+	if withLines {
+		rawContent, err := base64.StdEncoding.DecodeString(*content.Content)
+		if err != nil {
+			return to.ErrorResult(fmt.Errorf("decode base64 content err: %v", err))
+		}
+
+		contentLines := make([]ContentLine, 0)
+		line := 0
+
+		scanner := bufio.NewScanner(bytes.NewReader(rawContent))
+
+		for scanner.Scan() {
+			line++
+
+			contentLines = append(contentLines, ContentLine{
+				LineNumber: line,
+				Content:    scanner.Text(),
+			})
+
+		}
+		contentBytes, err := json.MarshalIndent(contentLines, "", "  ")
+		if err != nil {
+			return to.ErrorResult(fmt.Errorf("marshal content lines err: %v", err))
+		}
+		contentStr := string(contentBytes)
+		content.Content = &contentStr
 	}
 	return to.TextResult(content)
 }
