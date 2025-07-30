@@ -63,6 +63,7 @@ func Run() error {
 			mcpServer,
 			server.WithLogger(log.New()),
 			server.WithHeartbeatInterval(30*time.Second),
+			server.WithStateLess(true),
 		)
 		log.Infof("Gitea MCP HTTP server listening on :%d", flag.Port)
 		if err := httpServer.Start(fmt.Sprintf(":%d", flag.Port)); err != nil {
