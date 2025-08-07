@@ -149,6 +149,16 @@ func GetFileContentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 			})
 
 		}
+		if err := scanner.Err(); err != nil {
+			return to.ErrorResult(fmt.Errorf("scan content err: %v", err))
+		}
+
+		// remove the last blank line if exists
+		// git does not consider the last line as a new line
+		if contentLines[len(contentLines)-1].Content == "" {
+			contentLines = contentLines[:len(contentLines)-1]
+		}
+
 		contentBytes, err := json.MarshalIndent(contentLines, "", "  ")
 		if err != nil {
 			return to.ErrorResult(fmt.Errorf("marshal content lines err: %v", err))
