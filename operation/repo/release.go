@@ -34,6 +34,7 @@ var (
 		mcp.WithString("title", mcp.Required(), mcp.Description("release title")),
 		mcp.WithBoolean("is_draft", mcp.Description("Whether the release is draft"), mcp.DefaultBool(false)),
 		mcp.WithBoolean("is_pre_release", mcp.Description("Whether the release is pre-release"), mcp.DefaultBool(false)),
+		mcp.WithString("body", mcp.Description("release body")),
 	)
 
 	DeleteReleaseTool = mcp.NewTool(
@@ -131,11 +132,13 @@ func CreateReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	}
 	isDraft, _ := req.GetArguments()["is_draft"].(bool)
 	isPreRelease, _ := req.GetArguments()["is_pre_release"].(bool)
+	body, _ := req.GetArguments()["body"].(string)
 
 	_, _, err := gitea.Client().CreateRelease(owner, repo, gitea_sdk.CreateReleaseOption{
 		TagName:      tagName,
 		Target:       target,
 		Title:        title,
+		Note:         body,
 		IsDraft:      isDraft,
 		IsPrerelease: isPreRelease,
 	})
