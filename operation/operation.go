@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gitea.com/gitea/gitea-mcp/operation/issue"
+	"gitea.com/gitea/gitea-mcp/operation/label"
 	"gitea.com/gitea/gitea-mcp/operation/pull"
 	"gitea.com/gitea/gitea-mcp/operation/repo"
 	"gitea.com/gitea/gitea-mcp/operation/search"
@@ -27,6 +28,9 @@ func RegisterTool(s *server.MCPServer) {
 
 	// Issue Tool
 	s.AddTools(issue.Tool.Tools()...)
+
+	// Label Tool
+	s.AddTools(label.Tool.Tools()...)
 
 	// Pull Tool
 	s.AddTools(pull.Tool.Tools()...)
