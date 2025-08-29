@@ -64,7 +64,7 @@ var (
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithString("filePath", mcp.Required(), mcp.Description("file path")),
 		mcp.WithString("sha", mcp.Required(), mcp.Description("sha is the SHA for the file that already exists")),
-		mcp.WithString("content", mcp.Required(), mcp.Description("file content, base64 encoded")),
+		mcp.WithString("content", mcp.Required(), mcp.Description("file content")),
 		mcp.WithString("message", mcp.Required(), mcp.Description("commit message")),
 		mcp.WithString("branch_name", mcp.Required(), mcp.Description("branch name")),
 	)
