@@ -27,7 +27,7 @@ const (
 var (
 	CreateRepoTool = mcp.NewTool(
 		CreateRepoToolName,
-		mcp.WithDescription("Create repository"),
+		mcp.WithDescription("Create repository in personal account or organization"),
 		mcp.WithString("name", mcp.Required(), mcp.Description("Name of the repository to create")),
 		mcp.WithString("description", mcp.Description("Description of the repository to create")),
 		mcp.WithBoolean("private", mcp.Description("Whether the repository is private")),
@@ -38,6 +38,7 @@ var (
 		mcp.WithString("license", mcp.Description("License to use")),
 		mcp.WithString("readme", mcp.Description("Readme of the repository to create")),
 		mcp.WithString("default_branch", mcp.Description("DefaultBranch of the repository (used when initializes and in template)")),
+		mcp.WithString("organization", mcp.Description("Organization name to create repository in (optional - defaults to personal account)")),
 	)
 
 	ForkRepoTool = mcp.NewTool(
@@ -120,6 +121,7 @@ func CreateRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 	license, _ := req.GetArguments()["license"].(string)
 	readme, _ := req.GetArguments()["readme"].(string)
 	defaultBranch, _ := req.GetArguments()["default_branch"].(string)
+	organization, _ := req.GetArguments()["organization"].(string)
 
 	opt := gitea_sdk.CreateRepoOption{
 		Name:          name,
@@ -133,9 +135,19 @@ func CreateRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 		Readme:        readme,
 		DefaultBranch: defaultBranch,
 	}
-	repo, _, err := gitea.Client().CreateRepo(opt)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("create repo err: %v", err))
+
+	var repo *gitea_sdk.Repository
+	var err error
+	if organization != "" {
+		repo, _, err = gitea.Client().CreateOrgRepo(organization, opt)
+		if err != nil {
+			return to.ErrorResult(fmt.Errorf("create organization repository '%s' in '%s' err: %v", name, organization, err))
+		}
+	} else {
+		repo, _, err = gitea.Client().CreateRepo(opt)
+		if err != nil {
+			return to.ErrorResult(fmt.Errorf("create repository '%s' err: %v", name, err))
+		}
 	}
 	return to.TextResult(repo)
 }
