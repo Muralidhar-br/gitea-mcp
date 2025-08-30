@@ -1,32 +1,28 @@
-# syntax=docker/dockerfile:1.4
-
-# Build stage
-FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS builder
-
-ARG VERSION=dev
-ARG TARGETOS
-ARG TARGETARCH
+# Stage 1: Build Gitea MCP using Go 1.24
+FROM golang:1.24-bookworm AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod \
-    go mod download
+# Install git and ca-certificates
+RUN apt-get update && apt-get install -y git ca-certificates && rm -rf /var/lib/apt/lists/*
 
-COPY . .
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
-    go build -trimpath -ldflags="-s -w -X main.Version=${VERSION}" -o gitea-mcp
+# Clone the repo
+RUN git clone https://github.com/Muralidhar-br/gitea-mcp.git .
 
-# Final stage
-FROM gcr.io/distroless/static-debian12:nonroot
+# Build the binary
+RUN go build -o gitea-mcp
+
+# Stage 2: Minimal runtime image
+FROM debian:bookworm-slim
 
 WORKDIR /app
-COPY --from=builder --chown=nonroot:nonroot /app/gitea-mcp .
 
-USER nonroot:nonroot
+# Add CA certificates for HTTPS support
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
-LABEL org.opencontainers.image.version="${VERSION}"
+# Copy the built binary
+COPY --from=builder /app/gitea-mcp /usr/local/bin/gitea-mcp
 
-CMD ["/app/gitea-mcp"]
+EXPOSE 4000
+
+ENTRYPOINT ["gitea-mcp"]
