@@ -22,6 +22,7 @@ const (
 	CreateRepoToolName  = "create_repo"
 	ForkRepoToolName    = "fork_repo"
 	ListMyReposToolName = "list_my_repos"
+	DeleteRepoToolName  = "delete_repo"
 )
 
 var (
@@ -56,6 +57,13 @@ var (
 		mcp.WithNumber("page", mcp.Required(), mcp.Description("Page number"), mcp.DefaultNumber(1), mcp.Min(1)),
 		mcp.WithNumber("pageSize", mcp.Required(), mcp.Description("Page size number"), mcp.DefaultNumber(100), mcp.Min(1)),
 	)
+
+	DeleteRepoTool = mcp.NewTool(
+		DeleteRepoToolName,
+		mcp.WithDescription("Delete repository"),
+		mcp.WithString("owner", mcp.Required(), mcp.Description("Repository owner")),
+		mcp.WithString("repo", mcp.Required(), mcp.Description("Repository name")),
+	)
 )
 
 func init() {
@@ -67,6 +75,10 @@ func init() {
 		Tool:    ForkRepoTool,
 		Handler: ForkRepoFn,
 	})
+	Tool.RegisterWrite(server.ServerTool{
+		Tool:    DeleteRepoTool,
+		Handler: DeleteRepoFn,
+	})
 	Tool.RegisterRead(server.ServerTool{
 		Tool:    ListMyReposTool,
 		Handler: ListMyReposFn,
@@ -76,6 +88,7 @@ func init() {
 func RegisterTool(s *server.MCPServer) {
 	s.AddTool(CreateRepoTool, CreateRepoFn)
 	s.AddTool(ForkRepoTool, ForkRepoFn)
+	s.AddTool(DeleteRepoTool, DeleteRepoFn)
 	s.AddTool(ListMyReposTool, ListMyReposFn)
 
 	// File
@@ -205,4 +218,22 @@ func ListMyReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	}
 
 	return to.TextResult(repos)
+}
+
+func DeleteRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called DeleteRepoFn")
+	owner, ok := req.GetArguments()["owner"].(string)
+	if !ok {
+		return to.ErrorResult(errors.New("owner is required"))
+	}
+	repo, ok := req.GetArguments()["repo"].(string)
+	if !ok {
+		return to.ErrorResult(errors.New("repository name is required"))
+	}
+
+	_, err := gitea.Client().DeleteRepo(owner, repo)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("delete repository '%s/%s' error: %v", owner, repo, err))
+	}
+	return to.TextResult("Repository deleted successfully")
 }
